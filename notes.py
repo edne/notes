@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, g
 from flask_sqlalchemy import SQLAlchemy
+from flask_httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 db = SQLAlchemy(app)
+auth = HTTPBasicAuth()
 
 
 class Note(db.Model):
@@ -33,6 +35,15 @@ class User(db.Model):
         yield 'username', self.username
 
 
+@auth.verify_password
+def verify_password(username, password):
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.verify_password(password):
+        return False
+    g.user = user
+    return True
+
+
 @app.route('/user/<username>')
 def get_user(username):
     user = User.query.filter_by(username=username).one_or_none()
@@ -57,6 +68,12 @@ def register():
     db.session.commit()
 
     return jsonify(dict(user))
+
+
+@app.route('/resource')
+@auth.login_required
+def get_resource():
+    return jsonify({'data': 'Hello, %s!' % g.user.username})
 
 
 @app.route('/add', methods=['POST'])
