@@ -44,7 +44,13 @@ def verify_password(username, password):
     return True
 
 
-@app.route('/user/<username>')
+@app.route('/users')
+def list_users():
+    users = User.query.all()
+    return jsonify([dict(user) for user in users])
+
+
+@app.route('/users/<string:username>')
 def get_user(username):
     user = User.query.filter_by(username=username).one_or_none()
     if user:
@@ -53,7 +59,8 @@ def get_user(username):
         abort(404)
 
 
-@app.route('/register', methods=['POST'])
+@app.route('/users', methods=['POST'])
+# @auth.login_required
 def register():
     username = request.json['username']
     password = request.json['password']
@@ -70,15 +77,26 @@ def register():
     return jsonify(dict(user))
 
 
-@app.route('/resource')
+@app.route('/notes')
+def list_notes():
+    notes = Note.query.all()
+    return jsonify([dict(note) for note in notes])
+
+
+@app.route('/notes/<int:note_id>')
+def show_note(note_id):
+    note = Note.query.filter_by(id=note_id).one_or_none()
+    if note:
+        return jsonify(dict(note))
+    else:
+        abort(404)
+
+
+@app.route('/notes', methods=['POST'])
 @auth.login_required
-def get_resource():
-    return jsonify({'data': 'Hello, %s!' % g.user.username})
-
-
-@app.route('/add', methods=['POST'])
 def add_note():
     content = request.form['content']
+    # author = g.user
     note = Note(content=content)
 
     db.session.add(note)
@@ -86,15 +104,6 @@ def add_note():
 
     app.logger.info('Added note: ' + str(note))
     return jsonify(dict(note))
-
-
-@app.route('/note/<int:note_id>')
-def show_note(note_id):
-    note = Note.query.filter_by(id=note_id).one_or_none()
-    if note:
-        return jsonify(dict(note))
-    else:
-        abort(404)
 
 
 if __name__ == '__main__':
