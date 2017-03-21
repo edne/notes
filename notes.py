@@ -3,11 +3,17 @@ from flask import Flask, request, jsonify, abort, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_httpauth import HTTPBasicAuth
 from passlib.apps import custom_app_context as pwd_context
+import click
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
+
+
+@click.group()
+def cli():
+    pass
 
 
 class Note(db.Model):
@@ -106,6 +112,12 @@ def add_note():
     return jsonify(dict(note))
 
 
-if __name__ == '__main__':
+@cli.command('api')
+@click.option('--debug', is_flag=True)
+def run_api(debug):
     db.create_all()
-    app.run(debug=True)
+    app.run(debug=debug)
+
+
+if __name__ == '__main__':
+    cli()
